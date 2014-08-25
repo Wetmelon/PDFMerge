@@ -5,6 +5,7 @@
  */
 package pdfmerge;
 
+import java.awt.Desktop;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.io.*;
@@ -53,7 +54,9 @@ public class MainFrame extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         bAddPdf = new javax.swing.JButton();
         bRemovePdf = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
+        lStatus = new javax.swing.JLabel();
+        bMoveUp = new javax.swing.JButton();
+        bMoveDown = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
         menu_Close = new javax.swing.JMenu();
         menClose = new javax.swing.JMenuItem();
@@ -62,9 +65,9 @@ public class MainFrame extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("PDF Merge");
         setMinimumSize(new java.awt.Dimension(350, 250));
-        setPreferredSize(new java.awt.Dimension(500, 250));
 
         bMerge.setText("Merge PDFs");
+        bMerge.setEnabled(false);
         bMerge.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 bMergeActionPerformed(evt);
@@ -81,6 +84,11 @@ public class MainFrame extends javax.swing.JFrame {
         pdfList.setModel(pdfModel);
         pdfList.setDragEnabled(true);
         pdfList.setDropMode(javax.swing.DropMode.INSERT);
+        pdfList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
+                pdfListValueChanged(evt);
+            }
+        });
         jScrollPane1.setViewportView(pdfList);
 
         bAddPdf.setText("Add PDF");
@@ -91,13 +99,25 @@ public class MainFrame extends javax.swing.JFrame {
         });
 
         bRemovePdf.setText("Remove Selected");
+        bRemovePdf.setEnabled(false);
         bRemovePdf.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 bRemovePdfActionPerformed(evt);
             }
         });
 
-        jLabel1.setText("Drag and Drop to Reorder List");
+        lStatus.setText("PDFs will be appended in the order shown above");
+
+        bMoveUp.setText("Move Up");
+        bMoveUp.setEnabled(false);
+        bMoveUp.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                bMoveUpActionPerformed(evt);
+            }
+        });
+
+        bMoveDown.setText("Move Down");
+        bMoveDown.setEnabled(false);
 
         menu_Close.setText("File");
 
@@ -124,24 +144,35 @@ public class MainFrame extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
+                        .addComponent(bMerge)
+                        .addGap(18, 18, 18)
+                        .addComponent(lStatus)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 81, Short.MAX_VALUE)
+                        .addComponent(bClose))
+                    .addGroup(layout.createSequentialGroup()
                         .addComponent(bAddPdf)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(bRemovePdf)
                         .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(bMerge)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 184, Short.MAX_VALUE)
-                        .addComponent(bClose))
-                    .addComponent(jScrollPane1))
+                        .addComponent(jScrollPane1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(bMoveDown, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(bMoveUp, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 149, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 149, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(bMoveUp)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(bMoveDown)
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(bAddPdf)
@@ -150,7 +181,7 @@ public class MainFrame extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(bMerge)
                     .addComponent(bClose)
-                    .addComponent(jLabel1))
+                    .addComponent(lStatus))
                 .addContainerGap())
         );
 
@@ -172,12 +203,19 @@ public class MainFrame extends javax.swing.JFrame {
         }
 
         fc.setSelectedFile(new File("MyMerge.pdf"));
+        boolean bMerge = false;
         if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File fOut = fc.getSelectedFile();
             if (fOut.getName().endsWith(".pdf")) {
-                mergePDFs(fOut.getPath());
+                bMerge = mergePDFs(fOut.getPath());
             } else {
-                mergePDFs(fOut.getPath() + ".pdf");
+                bMerge = mergePDFs(fOut.getPath() + ".pdf");
+            }
+            lStatus.setText("Done!");
+            try {
+                Desktop.getDesktop().open(fOut);
+            } catch (IOException ex) {
+                Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }//GEN-LAST:event_bMergeActionPerformed
@@ -204,7 +242,8 @@ public class MainFrame extends javax.swing.JFrame {
             for (File f : fc.getSelectedFiles()) {
                 pdfModel.addElement(f.getPath());
             }
-        }
+            bMerge.setEnabled(true);
+        }        
     }//GEN-LAST:event_bAddPdfActionPerformed
 
     private void bRemovePdfActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bRemovePdfActionPerformed
@@ -212,7 +251,38 @@ public class MainFrame extends javax.swing.JFrame {
         while (pdfList.getSelectedIndex() >= 0) {
             pdfModel.remove(pdfList.getSelectedIndex());
         }
+        if(pdfModel.getSize() == 0)
+            bMerge.setEnabled(false);
     }//GEN-LAST:event_bRemovePdfActionPerformed
+
+    private void bMoveUpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bMoveUpActionPerformed
+        // TODO add your handling code here:
+        if(pdfList.getSelectedIndex() >= 0)
+        {
+            
+        }
+    }//GEN-LAST:event_bMoveUpActionPerformed
+
+    private void pdfListValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_pdfListValueChanged
+        // TODO add your handling code here:
+        int index = pdfList.getSelectedIndex();
+        if(index >= 0)
+        {
+            if(index == pdfModel.size()-1)
+                bMoveDown.setEnabled(false);
+            else
+                bMoveDown.setEnabled(true);
+            
+            if(index == 0)
+                bMoveUp.setEnabled(false);
+            else
+                bMoveUp.setEnabled(true);
+            
+            bRemovePdf.setEnabled((true));
+        }
+        else
+            bRemovePdf.setEnabled(false);
+    }//GEN-LAST:event_pdfListValueChanged
 
     /**
      * @param args the command line arguments
@@ -253,17 +323,19 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JButton bAddPdf;
     private javax.swing.JButton bClose;
     private javax.swing.JButton bMerge;
+    private javax.swing.JButton bMoveDown;
+    private javax.swing.JButton bMoveUp;
     private javax.swing.JButton bRemovePdf;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel lStatus;
     private javax.swing.JMenuItem menClose;
     private javax.swing.JMenu menu_Close;
     private final javax.swing.JList pdfList = new javax.swing.JList();
     // End of variables declaration//GEN-END:variables
 
-    private void mergePDFs(String sDest) {
+    private boolean mergePDFs(String sDest) {
         PDFMergerUtility ut = new PDFMergerUtility();
         for (Object s : pdfModel.toArray()) {
             System.out.println("Merging " + s);
@@ -274,11 +346,11 @@ public class MainFrame extends javax.swing.JFrame {
         System.out.println("Output Location: " + sDest);
         try {
             ut.mergeDocuments();
-        } catch (IOException ex) {
+        } catch (IOException | COSVisitorException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (COSVisitorException ex) {
-            Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
         }
+        return true;
         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
