@@ -6,19 +6,12 @@
 package pdfmerge;
 
 import java.awt.Desktop;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.io.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
-import javax.swing.JList;
-import javax.swing.TransferHandler;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.apache.pdfbox.exceptions.COSVisitorException;
 import org.apache.pdfbox.util.PDFMergerUtility;
@@ -118,6 +111,11 @@ public class MainFrame extends javax.swing.JFrame {
 
         bMoveDown.setText("Move Down");
         bMoveDown.setEnabled(false);
+        bMoveDown.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                bMoveDownActionPerformed(evt);
+            }
+        });
 
         menu_Close.setText("File");
 
@@ -203,13 +201,13 @@ public class MainFrame extends javax.swing.JFrame {
         }
 
         fc.setSelectedFile(new File("MyMerge.pdf"));
-        boolean bMerge = false;
+        boolean isMerged = false;
         if (fc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File fOut = fc.getSelectedFile();
             if (fOut.getName().endsWith(".pdf")) {
-                bMerge = mergePDFs(fOut.getPath());
+                isMerged = mergePDFs(fOut.getPath());
             } else {
-                bMerge = mergePDFs(fOut.getPath() + ".pdf");
+                isMerged = mergePDFs(fOut.getPath() + ".pdf");
             }
             lStatus.setText("Done!");
             try {
@@ -257,10 +255,10 @@ public class MainFrame extends javax.swing.JFrame {
 
     private void bMoveUpActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bMoveUpActionPerformed
         // TODO add your handling code here:
-        if(pdfList.getSelectedIndex() >= 0)
-        {
-            
-        }
+        int nIndex = pdfList.getSelectedIndex();
+        pdfModel.add(nIndex-1, pdfModel.get(nIndex));
+        pdfModel.remove(nIndex+1);
+        pdfList.setSelectedIndex(nIndex-1);
     }//GEN-LAST:event_bMoveUpActionPerformed
 
     private void pdfListValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_pdfListValueChanged
@@ -283,6 +281,14 @@ public class MainFrame extends javax.swing.JFrame {
         else
             bRemovePdf.setEnabled(false);
     }//GEN-LAST:event_pdfListValueChanged
+
+    private void bMoveDownActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_bMoveDownActionPerformed
+        // TODO add your handling code here:
+        int nIndex = pdfList.getSelectedIndex();
+        pdfModel.add(nIndex+2, pdfModel.get(nIndex));
+        pdfModel.remove(nIndex);
+        pdfList.setSelectedIndex(nIndex+1);
+    }//GEN-LAST:event_bMoveDownActionPerformed
 
     /**
      * @param args the command line arguments
